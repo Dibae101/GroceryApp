@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ user.username }}'s Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <!-- Profile Header -->
+        <div class="p-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+            <div class="flex items-center space-x-4">
+                <div class="w-24 h-24 rounded-full bg-white p-1">
+                    <img src="{{ user.userprofile.avatar }}" alt="{{ user.username }}" 
+                         class="w-full h-full rounded-full object-cover">
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold">{{ user.username }}</h1>
+                    <p class="text-blue-100">Member since {{ user.date_joined|date }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Content -->
+        <div class="p-6">
+            <div class="mb-8">
+                <h2 class="text-xl font-semibold mb-4">About</h2>
+                <p class="text-gray-600">{{ user.userprofile.bio|default:"No bio yet." }}</p>
+            </div>
+
+            <div class="mb-8">
+                <h2 class="text-xl font-semibold mb-4">Preferred Categories</h2>
+                <p class="text-gray-600">{{ user.userprofile.preferred_categories|default:"No preferences set." }}</p>
+            </div>
+
+            {% if is_owner %}
+            <div class="border-t pt-6">
+                <h2 class="text-xl font-semibold mb-4">Edit Profile</h2>
+                <form method="post" class="space-y-4">
+                    {% csrf_token %}
+                    <div>
+                        <label for="bio" class="block text-sm font-medium text-gray-700">Bio</label>
+                        <textarea name="bio" id="bio" rows="3"
+                                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">{{ user.userprofile.bio }}</textarea>
+                    </div>
+                    <div>
+                        <label for="categories" class="block text-sm font-medium text-gray-700">Preferred Categories</label>
+                        <input type="text" name="categories" id="categories"
+                               value="{{ user.userprofile.preferred_categories }}"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <button type="submit" 
+                            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
+                        Update Profile
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Groups Section -->
+        <div class="border-t">
+            <div class="p-6">
+                <h2 class="text-xl font-semibold mb-4">Groups</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for membership in user.groupmembership_set.all %}
+                        <div class="border rounded-lg p-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-medium">{{ membership.group.name }}</h3>
+                                    <p class="text-sm text-gray-500">Joined {{ membership.joined_at|date }}</p>
+                                </div>
+                                {% if membership.is_admin %}
+                                    <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">Admin</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="col-span-2 text-gray-500 text-center py-4">Not a member of any groups yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

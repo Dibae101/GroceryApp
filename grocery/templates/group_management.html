@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Group Management{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Create Group Section -->
+    <div class="mb-8 bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-bold mb-4">Create a New Group</h2>
+        <form method="post" action="{% url 'group_create' %}" class="flex gap-4">
+            {% csrf_token %}
+            <input type="text" name="name" placeholder="Enter group name" required
+                   class="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+            <button type="submit" 
+                    class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                Create Group
+            </button>
+        </form>
+    </div>
+
+    <!-- Your Groups Section -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold mb-4">Your Groups</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for group in user_groups %}
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-2">{{ group.name }}</h3>
+                        <p class="text-sm text-gray-500 mb-4">Created by {{ group.created_by.username }}</p>
+                        <div class="flex justify-between items-center">
+                            <a href="{% url 'group_detail' group.id %}" 
+                               class="text-blue-500 hover:text-blue-700">View Details</a>
+                            <form method="post" action="{% url 'leave_group' group.id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" 
+                                        class="text-red-500 hover:text-red-700">
+                                    Leave Group
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-span-full bg-gray-50 rounded-lg p-8 text-center">
+                    <p class="text-gray-600">You haven't joined any groups yet.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Available Groups Section -->
+    <div>
+        <h2 class="text-2xl font-bold mb-4">Available Groups</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for group in other_groups %}
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-2">{{ group.name }}</h3>
+                        <p class="text-sm text-gray-500 mb-4">Created by {{ group.created_by.username }}</p>
+                        <form method="post" action="{% url 'join_group' group.id %}" class="text-center">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors">
+                                Join Group
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-span-full bg-gray-50 rounded-lg p-8 text-center">
+                    <p class="text-gray-600">No other groups available to join.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,4 @@
+Django>=4.2
+pytz
+sqlparse
+requests==2.31.0

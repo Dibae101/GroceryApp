@@ -111,9 +111,26 @@ def add_to_basket(request, item_id):
 
 @login_required
 def remove_from_basket(request, item_id):
-    basket = get_object_or_404(Basket, user=request.user)
+    group_id = request.POST.get('group_id')
+    
+    if group_id:
+        group = get_object_or_404(Group, id=group_id)
+        basket = get_object_or_404(Basket, group=group, is_group_basket=True)
+    else:
+        basket = get_object_or_404(Basket, user=request.user, is_group_basket=False)
+    
     basket_item = get_object_or_404(BasketItem, basket=basket, item_id=item_id)
-    basket_item.delete()
+    
+    if basket_item.quantity > 1:
+        basket_item.quantity -= 1
+        basket_item.save()
+    else:
+        basket_item.delete()
+    
+    messages.success(request, 'Item removed from basket.')
+    
+    if group_id:
+        return redirect('group_detail', group_id=group_id)
     return redirect('basket_view')
 
 @login_required
@@ -314,6 +331,41 @@ def leave_group(request, group_id):
     membership.delete()
     messages.success(request, f'You have left {group.name}')
     return redirect('group_list')
+
+@login_required
+def toggle_admin(request, group_id, user_id):
+    if request.method == 'POST':
+        group = get_object_or_404(Group, id=group_id)
+        if not GroupMembership.objects.filter(group=group, user=request.user, is_admin=True).exists():
+            messages.error(request, 'Only group admins can change member roles.')
+            return redirect('group_detail', group_id=group_id)
+        
+        membership = get_object_or_404(GroupMembership, group=group, user_id=user_id)
+        membership.is_admin = not membership.is_admin
+        membership.save()
+        
+        action = 'added as' if membership.is_admin else 'removed as'
+        messages.success(request, f'{membership.user.username} {action} admin.')
+    
+    return redirect('group_detail', group_id=group_id)
+
+@login_required
+def remove_member(request, group_id, user_id):
+    if request.method == 'POST':
+        group = get_object_or_404(Group, id=group_id)
+        if not GroupMembership.objects.filter(group=group, user=request.user, is_admin=True).exists():
+            messages.error(request, 'Only group admins can remove members.')
+            return redirect('group_detail', group_id=group_id)
+        
+        membership = get_object_or_404(GroupMembership, group=group, user_id=user_id)
+        if membership.user == group.created_by:
+            messages.error(request, 'Cannot remove the group creator.')
+            return redirect('group_detail', group_id=group_id)
+        
+        membership.delete()
+        messages.success(request, f'{membership.user.username} has been removed from the group.')
+    
+    return redirect('group_detail', group_id=group_id)
 
 @login_required
 def user_profile(request, username):

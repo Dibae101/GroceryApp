@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 import uuid
 from datetime import timedelta
+import decimal
 from .models import GroceryItem, Basket, Group, BasketItem, GroupMembership, GroupInvitation
 
 def signup(request):
@@ -26,39 +27,57 @@ def signup(request):
 
 @login_required
 def dashboard(request):
-    selected_category = request.GET.get('category', '')
     page_number = request.GET.get('page', 1)
+    items = GroceryItem.objects.all()
+    query = request.GET.get('q', '')
+    category_filter = request.GET.get('category', '')
 
-    # Get all items
-    items = GroceryItem.objects.all().order_by('category', 'name')
+    if query:
+        items = items.filter(Q(name__icontains=query) | Q(category__icontains=query))
 
-    # Filter by category if selected
-    if selected_category:
-        items = items.filter(category=selected_category)
+    if category_filter:
+        items = items.filter(category__iexact=category_filter)
 
-    # Get unique categories for the filter dropdown
-    categories = GroceryItem.objects.values_list('category', flat=True).distinct()
-
-    # Get user's groups for basket selection
-    user_groups = Group.objects.filter(members=request.user)
-
-    # Paginate items
     paginator = Paginator(items, 12)  # Show 12 items per page
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'dashboard.html', {
-        'grocery_items': page_obj,
-        'categories': categories,
-        'selected_category': selected_category,
+        'items': page_obj.object_list,
+        'categories': GroceryItem.objects.values_list('category', flat=True).distinct(),
+        'query': query,
+        'category_filter': category_filter,
         'is_paginated': paginator.num_pages > 1,
-        'page_obj': page_obj,
-        'user_groups': user_groups
+        'page_obj': page_obj
     })
 
 @login_required
 def basket_view(request):
-    basket, created = Basket.objects.get_or_create(user=request.user)
-    return render(request, 'basket.html', {'basket': basket})
+    basket = Basket.objects.filter(
+        user=request.user,
+        is_group_basket=False
+    ).first()
+    
+    basket_data = None
+    basket_items = []
+    if basket:
+        # Calculate total cost and delivery fee
+        subtotal = sum(item.item.price * item.quantity for item in basket.basketitem_set.all())
+        delivery_fee = decimal.Decimal('5.00') if subtotal < 50 else decimal.Decimal('0.00')
+        total_with_delivery = subtotal + delivery_fee
+        basket_data = {
+            'subtotal': subtotal,
+            'delivery_fee': delivery_fee,
+            'total_with_delivery': total_with_delivery,
+        }
+        
+        # Add total price for each item
+        for item in basket.basketitem_set.all():
+            basket_items.append({
+                'item': item,
+                'total_price': item.item.price * item.quantity
+            })
+    
+    return render(request, 'basket.html', {'basket': basket, 'basket_data': basket_data, 'basket_items': basket_items})
 
 @login_required
 def add_to_basket(request, item_id):
@@ -112,6 +131,7 @@ def add_to_basket(request, item_id):
 @login_required
 def remove_from_basket(request, item_id):
     group_id = request.POST.get('group_id')
+    remove_all = request.POST.get('remove_all') == 'true'
     
     if group_id:
         group = get_object_or_404(Group, id=group_id)
@@ -121,13 +141,17 @@ def remove_from_basket(request, item_id):
     
     basket_item = get_object_or_404(BasketItem, basket=basket, item_id=item_id)
     
-    if basket_item.quantity > 1:
-        basket_item.quantity -= 1
-        basket_item.save()
-    else:
+    if remove_all:
         basket_item.delete()
-    
-    messages.success(request, 'Item removed from basket.')
+        messages.success(request, 'Item removed from basket.')
+    else:
+        if basket_item.quantity > 1:
+            basket_item.quantity -= 1
+            basket_item.save()
+            messages.success(request, 'Item quantity reduced.')
+        else:
+            basket_item.delete()
+            messages.success(request, 'Item removed from basket.')
     
     if group_id:
         return redirect('group_detail', group_id=group_id)
@@ -135,11 +159,11 @@ def remove_from_basket(request, item_id):
 
 @login_required
 def group_list(request):
-    user_groups = Group.objects.filter(members=request.user)
-    other_groups = Group.objects.exclude(members=request.user)
+    owned_groups = Group.objects.filter(created_by=request.user)
+    member_groups = Group.objects.filter(members=request.user).exclude(created_by=request.user)
     return render(request, 'group_management.html', {
-        'user_groups': user_groups,
-        'other_groups': other_groups
+        'owned_groups': owned_groups,
+        'member_groups': member_groups
     })
 
 @login_required

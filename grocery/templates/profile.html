@@ -3,80 +3,136 @@
 {% block title %}{{ user.username }}'s Profile{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
-        <!-- Profile Header -->
-        <div class="p-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-            <div class="flex items-center space-x-4">
-                <div class="w-24 h-24 rounded-full bg-white p-1">
-                    <img src="{{ user.userprofile.avatar }}" alt="{{ user.username }}" 
-                         class="w-full h-full rounded-full object-cover">
+        <div class="p-8">
+            <!-- Profile Header -->
+            <div class="flex items-center space-x-6 mb-8">
+                <div class="w-24 h-24 rounded-full avocado-avatar flex items-center justify-center overflow-hidden">
+                    <span class="text-4xl" data-seed="{{ user.username }}">🥑</span>
                 </div>
                 <div>
-                    <h1 class="text-2xl font-bold">{{ user.username }}</h1>
-                    <p class="text-blue-100">Member since {{ user.date_joined|date }}</p>
+                    <h1 class="text-3xl font-bold text-avocado">{{ user.username }}</h1>
+                    <p class="text-gray-600">Member since {{ user.date_joined|date:"F j, Y" }}</p>
                 </div>
-            </div>
-        </div>
-
-        <!-- Profile Content -->
-        <div class="p-6">
-            <div class="mb-8">
-                <h2 class="text-xl font-semibold mb-4">About</h2>
-                <p class="text-gray-600">{{ user.userprofile.bio|default:"No bio yet." }}</p>
-            </div>
-
-            <div class="mb-8">
-                <h2 class="text-xl font-semibold mb-4">Preferred Categories</h2>
-                <p class="text-gray-600">{{ user.userprofile.preferred_categories|default:"No preferences set." }}</p>
             </div>
 
             {% if is_owner %}
-            <div class="border-t pt-6">
-                <h2 class="text-xl font-semibold mb-4">Edit Profile</h2>
-                <form method="post" class="space-y-4">
+                <!-- Edit Profile Form -->
+                <form method="POST" class="space-y-6">
                     {% csrf_token %}
                     <div>
-                        <label for="bio" class="block text-sm font-medium text-gray-700">Bio</label>
-                        <textarea name="bio" id="bio" rows="3"
-                                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">{{ user.userprofile.bio }}</textarea>
+                        <label for="bio" class="block text-sm font-medium text-gray-700 mb-1">About Me</label>
+                        <textarea name="bio" id="bio" rows="4" 
+                                  class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-avocado bg-cream"
+                                  placeholder="Tell us about yourself...">{{ user.userprofile.bio }}</textarea>
                     </div>
+
                     <div>
-                        <label for="categories" class="block text-sm font-medium text-gray-700">Preferred Categories</label>
-                        <input type="text" name="categories" id="categories"
+                        <label for="categories" class="block text-sm font-medium text-gray-700 mb-1">Preferred Categories</label>
+                        <input type="text" name="categories" id="categories" 
                                value="{{ user.userprofile.preferred_categories }}"
-                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                               class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-avocado bg-cream"
+                               placeholder="e.g. Fruits, Vegetables, Dairy">
+                        <p class="mt-1 text-sm text-gray-500">Separate categories with commas</p>
                     </div>
+
                     <button type="submit" 
-                            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
+                            class="w-full bg-avocado text-white py-3 px-6 rounded-lg hover:bg-avocado-dark transition-colors flex items-center justify-center">
+                        <span class="mr-2">✨</span>
                         Update Profile
                     </button>
                 </form>
-            </div>
-            {% endif %}
-        </div>
+            {% else %}
+                <!-- View Profile -->
+                <div class="space-y-6">
+                    {% if user.userprofile.bio %}
+                        <div>
+                            <h2 class="text-lg font-medium text-gray-900 mb-2">About</h2>
+                            <p class="text-gray-600">{{ user.userprofile.bio }}</p>
+                        </div>
+                    {% endif %}
 
-        <!-- Groups Section -->
-        <div class="border-t">
-            <div class="p-6">
-                <h2 class="text-xl font-semibold mb-4">Groups</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {% for membership in user.groupmembership_set.all %}
-                        <div class="border rounded-lg p-4">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h3 class="font-medium">{{ membership.group.name }}</h3>
-                                    <p class="text-sm text-gray-500">Joined {{ membership.joined_at|date }}</p>
-                                </div>
-                                {% if membership.is_admin %}
-                                    <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">Admin</span>
-                                {% endif %}
+                    {% if user.userprofile.preferred_categories %}
+                        <div>
+                            <h2 class="text-lg font-medium text-gray-900 mb-2">Preferred Categories</h2>
+                            <div class="flex flex-wrap gap-2">
+                                {% for category in user.userprofile.preferred_categories.split ',' %}
+                                    <span class="px-3 py-1 bg-avocado-light text-white rounded-full text-sm">
+                                        {{ category.strip }}
+                                    </span>
+                                {% endfor %}
                             </div>
                         </div>
-                    {% empty %}
-                        <p class="col-span-2 text-gray-500 text-center py-4">Not a member of any groups yet.</p>
-                    {% endfor %}
+                    {% endif %}
                 </div>
+            {% endif %}
+
+            <!-- User's Groups -->
+            <div class="mt-8">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Groups</h2>
+                {% if user.groups.all %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {% for group in user.groups.all %}
+                            <a href="{% url 'group_detail' group.id %}" 
+                               class="block p-4 bg-cream rounded-lg hover:shadow-md transition-shadow">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h3 class="font-medium text-avocado">{{ group.name }}</h3>
+                                        <p class="text-sm text-gray-600">
+                                            {{ group.members.count }} member{{ group.members.count|pluralize }}
+                                        </p>
+                                    </div>
+                                    <span class="text-2xl">👥</span>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-gray-600">Not a member of any groups yet.</p>
+                {% endif %}
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="mt-8">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Recent Activity</h2>
+                {% if user.basket_set.all %}
+                    <div class="space-y-4">
+                        {% for basket in user.basket_set.all %}
+                            <div class="p-4 bg-cream rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="font-medium text-avocado">
+                                        {% if basket.is_group_basket %}
+                                            {{ basket.group.name }}'s Basket
+                                        {% else %}
+                                            Personal Basket
+                                        {% endif %}
+                                    </h3>
+                                    <span class="text-sm text-gray-500">{{ basket.created_at|date:"M j, Y" }}</span>
+                                </div>
+                                {% if basket.basketitem_set.all %}
+                                    <ul class="space-y-2">
+                                        {% for item in basket.basketitem_set.all|slice:":3" %}
+                                            <li class="flex justify-between text-sm">
+                                                <span>{{ item.quantity }}x {{ item.item.name }}</span>
+                                                <span class="text-avocado">${{ item.total_price }}</span>
+                                            </li>
+                                        {% endfor %}
+                                        {% if basket.basketitem_set.count > 3 %}
+                                            <li class="text-sm text-gray-500">
+                                                And {{ basket.basketitem_set.count|add:"-3" }} more items...
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-sm text-gray-500">No items in basket</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-gray-600">No recent activity</p>
+                {% endif %}
             </div>
         </div>
     </div>

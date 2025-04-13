@@ -1,55 +1,195 @@
 {% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>{% block title %}Grocery App{% endblock %}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Groster{% endblock %}</title>
     <link href="{% static 'css/output.css' %}" rel="stylesheet">
-    <!-- Add Django messages styling -->
-    {% if messages %}
-    <style>
-        .message {
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 0.5rem;
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'avocado': '#568203',
+                        'avocado-dark': '#3D5C02',
+                        'avocado-light': '#8BB174',
+                        'cream': '#F7F4E9',
+                    }
+                }
+            }
         }
-        .message-success { background-color: #DEF7EC; color: #03543F; }
-        .message-error { background-color: #FDE8E8; color: #9B1C1C; }
+    </script>
+    <style>
+        .avocado-avatar {
+            background-color: #8BB174;
+            position: relative;
+        }
+        .avocado-avatar span {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
     </style>
-    {% endif %}
 </head>
-<body class="bg-gray-100 text-gray-800">
-    <header class="bg-blue-600 text-white p-4">
-        <nav class="container mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-6">
-                <a href="/dashboard/" class="px-4 py-2 hover:bg-blue-700 rounded transition-colors">Dashboard</a>
-                <a href="{% url 'group_list' %}" class="px-4 py-2 hover:bg-blue-700 rounded transition-colors">Groups</a>
-                <a href="{% url 'basket_view' %}" class="px-4 py-2 hover:bg-blue-700 rounded transition-colors">Basket</a>
-            </div>
-            <div class="flex items-center space-x-4">
-                <a href="{% url 'user_profile' request.user.username %}" class="flex items-center space-x-2 px-4 py-2 hover:bg-blue-700 rounded transition-colors">
-                    <span class="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                        <img src="{{ request.user.userprofile.avatar }}" alt="{{ request.user.username }}" 
-                             class="w-full h-full rounded-full object-cover">
-                    </span>
-                    <span>{{ request.user.username }}</span>
-                </a>
-                <a href="/logout/" class="px-4 py-2 hover:bg-blue-700 rounded transition-colors">Logout</a>
-            </div>
-        </nav>
-    </header>
+<body class="bg-cream min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <!-- Logo -->
+                    <div class="flex-shrink-0 flex items-center">
+                        <a href="{% url 'dashboard' %}" class="text-2xl font-bold text-avocado flex items-center">
+                            <span class="mr-2">🥑</span>
+                            Groster
+                        </a>
+                    </div>
 
-    <!-- Messages section -->
-    {% if messages %}
-    <div class="container mx-auto px-4 mt-4">
-        {% for message in messages %}
-        <div class="message message-{{ message.tags }}">
-            {{ message }}
+                    <!-- Primary Navigation -->
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="{% url 'dashboard' %}" 
+                           class="{% if request.resolver_match.url_name == 'dashboard' %}border-avocado text-avocado{% else %}border-transparent text-gray-500 hover:text-avocado{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Browse
+                        </a>
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'basket_view' %}"
+                               class="{% if request.resolver_match.url_name == 'basket_view' %}border-avocado text-avocado{% else %}border-transparent text-gray-500 hover:text-avocado{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                My Basket
+                            </a>
+                            <a href="{% url 'group_management' %}"
+                               class="{% if request.resolver_match.url_name == 'group_management' %}border-avocado text-avocado{% else %}border-transparent text-gray-500 hover:text-avocado{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                Groups
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Right Navigation -->
+                <div class="hidden sm:ml-6 sm:flex sm:items-center">
+                    {% if user.is_authenticated %}
+                        <div class="ml-3 relative group">
+                            <button type="button" 
+                                    class="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-avocado">
+                                <div class="w-8 h-8 rounded-full avocado-avatar flex items-center justify-center overflow-hidden">
+                                    <span class="text-xl" data-seed="{{ user.username }}">🥑</span>
+                                </div>
+                            </button>
+                            <!-- Dropdown Menu -->
+                            <div class="hidden group-hover:block absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5">
+                                <a href="{% url 'profile' request.user.username %}" 
+                                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-cream">
+                                    Your Profile
+                                </a>
+                                <form method="post" action="{% url 'logout' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-cream">
+                                        Sign out
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="flex space-x-4">
+                            <a href="{% url 'login' %}" 
+                               class="text-gray-500 hover:text-avocado px-3 py-2 rounded-md text-sm font-medium">
+                                Sign in
+                            </a>
+                            <a href="{% url 'signup' %}" 
+                               class="bg-avocado text-white hover:bg-avocado-dark px-3 py-2 rounded-md text-sm font-medium">
+                                Sign up
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <div class="flex items-center sm:hidden">
+                    <button type="button" 
+                            onclick="document.getElementById('mobile-menu').classList.toggle('hidden')"
+                            class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
-        {% endfor %}
-    </div>
-    {% endif %}
 
-    <main class="container mx-auto p-4">
+        <!-- Mobile Menu -->
+        <div class="hidden sm:hidden" id="mobile-menu">
+            <div class="pt-2 pb-3 space-y-1">
+                <a href="{% url 'dashboard' %}" 
+                   class="{% if request.resolver_match.url_name == 'dashboard' %}bg-cream text-avocado{% else %}text-gray-500 hover:bg-cream hover:text-avocado{% endif %} block pl-3 pr-4 py-2 text-base font-medium">
+                    Browse
+                </a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'basket_view' %}"
+                       class="{% if request.resolver_match.url_name == 'basket_view' %}bg-cream text-avocado{% else %}text-gray-500 hover:bg-cream hover:text-avocado{% endif %} block pl-3 pr-4 py-2 text-base font-medium">
+                        My Basket
+                    </a>
+                    <a href="{% url 'group_management' %}"
+                       class="{% if request.resolver_match.url_name == 'group_management' %}bg-cream text-avocado{% else %}text-gray-500 hover:bg-cream hover:text-avocado{% endif %} block pl-3 pr-4 py-2 text-base font-medium">
+                        Groups
+                    </a>
+                    <div class="border-t border-gray-200 pt-4 pb-3">
+                        <div class="flex items-center px-4">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 rounded-full avocado-avatar flex items-center justify-center overflow-hidden">
+                                    <span class="text-xl" data-seed="{{ user.username }}">🥑</span>
+                                </div>
+                            </div>
+                            <div class="ml-3">
+                                <div class="text-base font-medium text-gray-800">{{ user.username }}</div>
+                            </div>
+                        </div>
+                        <div class="mt-3 space-y-1">
+                            <a href="{% url 'profile' request.user.username %}"
+                               class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-avocado hover:bg-cream">
+                                Your Profile
+                            </a>
+                            <form method="post" action="{% url 'logout' %}">
+                                {% csrf_token %}
+                                <button type="submit"
+                                        class="block w-full text-left px-4 py-2 text-base font-medium text-gray-500 hover:text-avocado hover:bg-cream">
+                                    Sign out
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="pt-4 pb-3 border-t border-gray-200">
+                        <div class="space-y-1">
+                            <a href="{% url 'login' %}"
+                               class="block pl-3 pr-4 py-2 text-base font-medium text-gray-500 hover:text-avocado hover:bg-cream">
+                                Sign in
+                            </a>
+                            <a href="{% url 'signup' %}"
+                               class="block pl-3 pr-4 py-2 text-base font-medium bg-avocado text-white hover:bg-avocado-dark">
+                                Sign up
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <main class="py-10">
+        {% if messages %}
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+                {% for message in messages %}
+                    <div class="p-4 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-700{% elif message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
         {% block content %}{% endblock %}
     </main>
 </body>

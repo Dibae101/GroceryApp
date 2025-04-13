@@ -32,3 +32,19 @@ class Command(BaseCommand):
                         )
             
         self.stdout.write(self.style.SUCCESS('Successfully imported grocery items'))
+
+class Command(BaseCommand):
+    help = 'Fetch and populate image URLs for grocery items'
+
+    def handle(self, *args, **kwargs):
+        items = GroceryItem.objects.all()
+        for item in items:
+            if not item.image_url:
+                # Fetch a placeholder image URL for the item
+                response = requests.get(f'https://source.unsplash.com/300x300/?{item.name}')
+                if response.status_code == 200:
+                    item.image_url = response.url
+                    item.save()
+                    self.stdout.write(self.style.SUCCESS(f'Updated image for {item.name}'))
+                else:
+                    self.stdout.write(self.style.ERROR(f'Failed to fetch image for {item.name}'))

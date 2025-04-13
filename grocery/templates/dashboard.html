@@ -1,118 +1,153 @@
 {% extends 'base.html' %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Browse - Groster{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <h1 class="text-3xl font-bold mb-8">Grocery Items</h1>
+    <div class="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
+        <div>
+            <h1 class="text-4xl font-extrabold text-avocado mb-2">Explore Fresh Groceries</h1>
+            <p class="text-gray-600">Find the best groceries for your needs</p>
+        </div>
 
-    <!-- Category Filter -->
-    <div class="mb-6">
-        <form method="get" class="flex gap-4 items-center">
-            <select name="category" class="p-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+        <!-- Search and Filter -->
+        <form method="get" class="flex flex-wrap gap-4 items-center bg-white p-4 rounded-lg shadow-md">
+            <input type="text" name="q" placeholder="Search for items..." value="{{ query }}"
+                   class="p-2 border rounded-lg focus:ring-2 focus:ring-avocado bg-cream w-full md:w-auto">
+            <select name="category" 
+                    class="p-2 border rounded-lg focus:ring-2 focus:ring-avocado bg-cream">
                 <option value="">All Categories</option>
                 {% for cat in categories %}
-                    <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>
+                    <option value="{{ cat }}" {% if category_filter == cat %}selected{% endif %}>
                         {{ cat }}
                     </option>
                 {% endfor %}
             </select>
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
-                Filter
+            <button type="submit" 
+                    class="bg-avocado text-white px-4 py-2 rounded-lg hover:bg-avocado-dark transition-colors flex items-center">
+                <span class="mr-2">🔍</span>
+                Search
             </button>
         </form>
     </div>
 
-    <!-- Grid of Items -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for item in grocery_items %}
-            <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                <div class="p-6">
-                    <div class="flex justify-between items-start mb-4">
-                        <h2 class="text-xl font-semibold text-gray-800">{{ item.name }}</h2>
-                        <span class="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded">
-                            {{ item.category }}
-                        </span>
+    <!-- Items Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {% for item in items %}
+            <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow transform hover:-translate-y-1 duration-200">
+                <div class="relative">
+                    <img src="data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'><rect width='300' height='300' fill='%238BB174'/><text x='50%' y='50%' font-size='24' text-anchor='middle' fill='white' dy='.3em'>{{ item.name|escape }}</text></svg>" alt="{{ item.name }}" class="w-full h-48 object-cover">
+                    <div class="absolute top-2 right-2 bg-avocado-light text-white text-xs font-medium px-2.5 py-0.5 rounded">
+                        {{ item.category }}
                     </div>
+                </div>
+                <div class="p-6">
+                    <h2 class="text-lg font-semibold text-gray-800">{{ item.name }}</h2>
                     {% if item.description %}
                         <p class="text-gray-600 mb-4 text-sm">{{ item.description }}</p>
                     {% endif %}
-                    <div class="flex justify-between items-center">
-                        <span class="text-2xl font-bold text-green-600">${{ item.price }}</span>
-                        
-                        <!-- Add to Basket Button -->
-                        <button onclick="document.getElementById('basketModal-{{ item.id }}').classList.remove('hidden')" 
-                                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
+                    <div class="flex justify-between items-center mt-4">
+                        <span class="text-2xl font-bold text-avocado">${{ item.price }}</span>
+                        <button onclick="openBasketModal('{{ item.id }}')" 
+                                class="bg-avocado text-white px-4 py-2 rounded-lg hover:bg-avocado-dark transition-colors flex items-center">
+                            <span class="mr-2">🛒</span>
                             Add to Basket
                         </button>
-
-                        <!-- Basket Selection Modal -->
-                        <div id="basketModal-{{ item.id }}" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-                            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                                <div class="mt-3">
-                                    <h3 class="text-lg font-medium text-gray-900 mb-4">Add to Basket</h3>
-                                    <p class="text-gray-600 mb-4">Choose where to add this item:</p>
-                                    
-                                    <!-- Personal Basket Option -->
-                                    <form method="POST" action="{% url 'add_to_basket' item.id %}" class="mb-3">
-                                        {% csrf_token %}
-                                        <button type="submit" class="w-full text-left px-4 py-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                                            <span class="font-medium">Personal Basket</span>
-                                        </button>
-                                    </form>
-
-                                    <!-- Group Baskets Options -->
-                                    {% if user_groups %}
-                                        {% for group in user_groups %}
-                                            <form method="POST" action="{% url 'add_to_basket' item.id %}" class="mb-2">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="add_to_group" value="1">
-                                                <input type="hidden" name="group_id" value="{{ group.id }}">
-                                                <button type="submit" class="w-full text-left px-4 py-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">
-                                                    <span class="font-medium">{{ group.name }}'s Basket</span>
-                                                </button>
-                                            </form>
-                                        {% endfor %}
-                                    {% endif %}
-
-                                    <button onclick="document.getElementById('basketModal-{{ item.id }}').classList.add('hidden')"
-                                            class="mt-4 w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
-            </div>
-        {% empty %}
-            <div class="col-span-full text-center py-12 bg-gray-50 rounded-lg">
-                <p class="text-gray-600">No items found in this category.</p>
             </div>
         {% endfor %}
     </div>
 
-    <!-- Pagination -->
+    <!-- Basket Selection Modal -->
+    <div id="basketModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white animate-fade-in">
+            <div class="mt-3">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Add to Basket</h3>
+                    <button onclick="closeBasketModal()"
+                            class="text-gray-400 hover:text-gray-500">
+                        <span class="text-2xl">×</span>
+                    </button>
+                </div>
+                <p class="text-gray-600 mb-4">Choose where to add this item and select quantity:</p>
+                
+                <!-- Quantity Selector -->
+                <div class="mb-4">
+                    <label for="quantity" class="block text-sm font-medium text-gray-700">Quantity</label>
+                    <input type="number" id="quantity" name="quantity" min="1" value="1"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-avocado focus:ring-avocado">
+                </div>
+                
+                <!-- Personal Basket Option -->
+                <form method="POST" action="" id="personalBasketForm" class="mb-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="quantity" id="personal-quantity">
+                    <button type="submit" 
+                            class="w-full text-left px-4 py-3 rounded-lg bg-cream hover:bg-avocado-light hover:text-white transition-colors flex items-center">
+                        <span class="mr-2">🛒</span>
+                        <span class="font-medium">Personal Basket</span>
+                    </button>
+                </form>
+
+                <!-- Group Baskets Options -->
+                {% if user_groups %}
+                    <div class="mb-2 text-sm text-gray-500">Group Baskets:</div>
+                    {% for group in user_groups %}
+                        <form method="POST" action="" class="mb-2 groupBasketForm">
+                            {% csrf_token %}
+                            <input type="hidden" name="add_to_group" value="1">
+                            <input type="hidden" name="group_id" value="{{ group.id }}">
+                            <input type="hidden" name="quantity" id="group-quantity">
+                            <button type="submit" 
+                                    class="w-full text-left px-4 py-3 rounded-lg bg-cream hover:bg-avocado-light hover:text-white transition-colors flex items-center">
+                                <span class="mr-2">👥</span>
+                                <span class="font-medium">{{ group.name }}'s Basket</span>
+                            </button>
+                        </form>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     {% if is_paginated %}
-        <div class="mt-8 flex justify-center space-x-4">
+        <div class="mt-8 flex justify-center gap-2">
             {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}" 
-                   class="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 transition-colors">
+                <a href="?page={{ page_obj.previous_page_number }}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if query %}&q={{ query }}{% endif %}"
+                   class="bg-avocado text-white px-4 py-2 rounded-lg hover:bg-avocado-dark transition-colors">
                     Previous
                 </a>
             {% endif %}
             
-            <span class="px-4 py-2 text-gray-700">
+            <span class="px-4 py-2 bg-white rounded-lg">
                 Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
             </span>
 
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}" 
-                   class="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 transition-colors">
+                <a href="?page={{ page_obj.next_page_number }}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if query %}&q={{ query }}{% endif %}"
+                   class="bg-avocado text-white px-4 py-2 rounded-lg hover:bg-avocado-dark transition-colors">
                     Next
                 </a>
             {% endif %}
         </div>
     {% endif %}
 </div>
+
+<script>
+    let currentItemId = null;
+
+    function openBasketModal(itemId) {
+        currentItemId = itemId;
+        document.getElementById('basketModal').classList.remove('hidden');
+        document.getElementById('personalBasketForm').action = `/add-to-basket/${itemId}/`;
+        document.querySelectorAll('.groupBasketForm').forEach(form => {
+            form.action = `/add-to-basket/${itemId}/`;
+        });
+    }
+
+    function closeBasketModal() {
+        document.getElementById('basketModal').classList.add('hidden');
+    }
+</script>
 {% endblock %}

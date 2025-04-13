@@ -1,55 +1,122 @@
 {% extends 'base.html' %}
 
-{% block title %}Your Basket{% endblock %}
+{% block title %}My Basket - Groster{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-    <h1 class="text-3xl font-bold mb-8">Your Basket</h1>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-avocado">My Basket</h1>
+        {% if not basket.is_group_basket %}
+            <p class="text-gray-600 mt-2">Your personal shopping basket</p>
+        {% else %}
+            <p class="text-gray-600 mt-2">Group basket for {{ basket.group.name }}</p>
+        {% endif %}
+    </div>
 
     {% if basket.basketitem_set.all %}
         <div class="bg-white rounded-lg shadow-md overflow-hidden">
             <ul class="divide-y divide-gray-200">
                 {% for item in basket.basketitem_set.all %}
-                    <li class="p-6 flex items-center justify-between">
-                        <div class="flex-1">
-                            <h3 class="text-lg font-medium text-gray-900">{{ item.item.name }}</h3>
-                            <p class="text-sm text-gray-500">{{ item.item.category }}</p>
-                            <div class="mt-1 flex items-center">
-                                <span class="text-sm text-gray-700">Quantity: {{ item.quantity }}</span>
-                                <span class="mx-2 text-gray-400">|</span>
-                                <span class="text-sm font-medium text-green-600">${{ item.item.price }} each</span>
+                    <li class="p-6">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center">
+                                    <h3 class="text-lg font-medium text-gray-900">{{ item.item.name }}</h3>
+                                    {% if item.item.description %}
+                                        <span class="ml-2 text-sm text-gray-500">{{ item.item.description }}</span>
+                                    {% endif %}
+                                </div>
+                                <p class="mt-1 text-sm text-gray-500">{{ item.item.category }}</p>
                             </div>
-                        </div>
-                        <div class="ml-4 flex items-center space-x-3">
-                            <a href="{% url 'remove_from_basket' item.item.id %}" 
-                               class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors">
-                                Remove
-                            </a>
+                            
+                            <div class="flex items-center space-x-6">
+                                <!-- Quantity Controls -->
+                                <div class="flex items-center space-x-2">
+                                    <form method="POST" action="{% url 'remove_from_basket' item.item.id %}" class="inline">
+                                        {% csrf_token %}
+                                        {% if basket.is_group_basket %}
+                                            <input type="hidden" name="group_id" value="{{ basket.group.id }}">
+                                        {% endif %}
+                                        <button type="submit" 
+                                                class="bg-avocado-light text-white w-8 h-8 rounded-full hover:bg-avocado transition-colors flex items-center justify-center">
+                                            <span class="text-xl">-</span>
+                                        </button>
+                                    </form>
+                                    
+                                    <span class="text-lg font-medium w-12 text-center">{{ item.quantity }}</span>
+                                    
+                                    <form method="POST" action="{% url 'add_to_basket' item.item.id %}" class="inline">
+                                        {% csrf_token %}
+                                        {% if basket.is_group_basket %}
+                                            <input type="hidden" name="add_to_group" value="1">
+                                            <input type="hidden" name="group_id" value="{{ basket.group.id }}">
+                                        {% endif %}
+                                        <button type="submit" 
+                                                class="bg-avocado text-white w-8 h-8 rounded-full hover:bg-avocado-dark transition-colors flex items-center justify-center">
+                                            <span class="text-xl">+</span>
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- Price -->
+                                <div class="text-right">
+                                    <p class="text-lg font-bold text-avocado">${{ item.total_price }}</p>
+                                    <p class="text-sm text-gray-500">${{ item.item.price }} each</p>
+                                </div>
+
+                                <!-- Remove All -->
+                                <form method="POST" action="{% url 'remove_from_basket' item.item.id %}">
+                                    {% csrf_token %}
+                                    {% if basket.is_group_basket %}
+                                        <input type="hidden" name="group_id" value="{{ basket.group.id }}">
+                                    {% endif %}
+                                    <input type="hidden" name="remove_all" value="true">
+                                    <button type="submit" 
+                                            class="text-red-500 hover:text-red-700"
+                                            title="Remove all">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </li>
                 {% endfor %}
             </ul>
-            
-            <div class="bg-gray-50 px-6 py-4">
-                <div class="flex justify-between items-center">
-                    <span class="text-lg font-medium text-gray-900">Total Cost:</span>
-                    <span class="text-2xl font-bold text-green-600">${{ basket.total_cost }}</span>
+
+            <!-- Basket Summary -->
+            <div class="bg-cream p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-lg font-medium">Total Items:</span>
+                    <span class="text-lg font-bold text-avocado">{{ basket.total_items }}</span>
+                </div>
+                <div class="flex justify-between items-center mb-6">
+                    <span class="text-xl font-medium">Total Cost:</span>
+                    <span class="text-2xl font-bold text-avocado">${{ basket.total_cost }}</span>
+                </div>
+
+                <div class="flex space-x-4">
+                    <a href="{% url 'dashboard' %}" 
+                       class="flex-1 bg-white text-avocado border-2 border-avocado py-3 px-6 rounded-lg hover:bg-avocado hover:text-white transition-colors text-center font-medium">
+                        Continue Shopping
+                    </a>
+                    <button class="flex-1 bg-avocado text-white py-3 px-6 rounded-lg hover:bg-avocado-dark transition-colors font-medium">
+                        Proceed to Checkout
+                    </button>
                 </div>
             </div>
         </div>
-
-        <div class="mt-6 text-center">
-            <a href="/dashboard/" 
-               class="inline-block bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors">
-                Continue Shopping
-            </a>
-        </div>
     {% else %}
-        <div class="text-center py-12 bg-white rounded-lg shadow-md">
-            <p class="text-gray-600 mb-4">Your basket is empty</p>
-            <a href="/dashboard/" 
-               class="inline-block bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors">
-                Start Shopping
+        <div class="text-center py-16">
+            <div class="mb-4">
+                <span class="text-6xl">🥑</span>
+            </div>
+            <h2 class="text-2xl font-medium text-gray-900 mb-4">Your basket is empty</h2>
+            <p class="text-gray-600 mb-8">Start adding some delicious items to your basket!</p>
+            <a href="{% url 'dashboard' %}" 
+               class="inline-block bg-avocado text-white px-6 py-3 rounded-lg hover:bg-avocado-dark transition-colors">
+                Browse Items
             </a>
         </div>
     {% endif %}

@@ -70,28 +70,36 @@
                 <!-- Right Navigation -->
                 <div class="hidden sm:ml-6 sm:flex sm:items-center">
                     {% if user.is_authenticated %}
-                        <div class="ml-3 relative group">
-                            <button type="button" 
-                                    class="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-avocado">
-                                <div class="w-8 h-8 rounded-full avocado-avatar flex items-center justify-center overflow-hidden">
-                                    <span class="text-xl" data-seed="{{ user.username }}">🥑</span>
+                        <!-- Profile Dropdown -->
+                        <div class="relative">
+                            <button id="profileDropdownButton" class="flex items-center space-x-2 focus:outline-none">
+                                <div class="w-8 h-8 rounded-full bg-avocado flex items-center justify-center text-white font-bold">
+                                    {{ user.username|slice:":1"|upper }}
                                 </div>
+                                <span class="text-gray-800 font-medium">{{ user.username }}</span>
                             </button>
-                            <!-- Dropdown Menu -->
-                            <div class="hidden group-hover:block absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5">
-                                <a href="{% url 'profile' request.user.username %}" 
-                                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-cream">
-                                    Your Profile
-                                </a>
-                                <form method="post" action="{% url 'logout' %}">
+                            <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg">
+                                <a href="{% url 'profile' user.username %}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
+                                <form method="POST" action="{% url 'logout' %}">
                                     {% csrf_token %}
-                                    <button type="submit" 
-                                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-cream">
-                                        Sign out
-                                    </button>
+                                    <button type="submit" class="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100">Sign Out</button>
                                 </form>
                             </div>
                         </div>
+                        <script>
+                            const profileDropdownButton = document.getElementById('profileDropdownButton');
+                            const profileDropdownMenu = document.getElementById('profileDropdownMenu');
+
+                            profileDropdownButton.addEventListener('click', () => {
+                                profileDropdownMenu.classList.toggle('hidden');
+                            });
+
+                            document.addEventListener('click', (event) => {
+                                if (!profileDropdownButton.contains(event.target) && !profileDropdownMenu.contains(event.target)) {
+                                    profileDropdownMenu.classList.add('hidden');
+                                }
+                            });
+                        </script>
                     {% else %}
                         <div class="flex space-x-4">
                             <a href="{% url 'login' %}" 

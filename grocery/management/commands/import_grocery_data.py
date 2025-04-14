@@ -1,50 +1,128 @@
 from django.core.management.base import BaseCommand
 from grocery.models import GroceryItem
-import requests
-import json
+from decimal import Decimal
 
 class Command(BaseCommand):
-    help = 'Import grocery items from Open Food Facts API'
+    help = 'Import sample grocery items'
 
-    def handle(self, *args, **kwargs):
-        self.stdout.write('Importing grocery items...')
-        
-        # Using Open Food Facts API to get common grocery items
-        categories = ['beverages', 'snacks', 'dairy', 'fruits', 'vegetables']
-        
-        for category in categories:
-            url = f'https://world.openfoodfacts.org/cgi/search.pl?search_terms={category}&search_simple=1&action=process&json=1&page_size=20'
-            response = requests.get(url)
-            
-            if response.status_code == 200:
-                data = response.json()
-                for product in data.get('products', []):
-                    name = product.get('product_name_en', '')
-                    if name:
-                        # Get or create to avoid duplicates
-                        GroceryItem.objects.get_or_create(
-                            name=name[:100],  # Limiting name length
-                            defaults={
-                                'category': category.title(),
-                                'price': round(float(product.get('nutriments', {}).get('energy-kcal', 0)) / 100, 2) or 4.99,  # Using energy value to generate a mock price
-                                'description': product.get('generic_name_en', '')[:200]  # Limiting description length
-                            }
-                        )
-            
-        self.stdout.write(self.style.SUCCESS('Successfully imported grocery items'))
+    def handle(self, *args, **options):
+        # Sample grocery items with realistic data
+        grocery_items = [
+            {
+                'name': 'Organic Bananas',
+                'category': 'Fruits',
+                'price': '2.99',
+                'description': 'Fresh organic bananas, sold by the bunch',
+                'image_url': 'https://images.unsplash.com/photo-1481349518771-20055b2a7b24'
+            },
+            {
+                'name': 'Whole Milk',
+                'category': 'Dairy',
+                'price': '3.49',
+                'description': '1 gallon of fresh whole milk',
+                'image_url': 'https://images.unsplash.com/photo-1563636619-e9143da7973b'
+            },
+            {
+                'name': 'Brown Eggs',
+                'category': 'Dairy',
+                'price': '4.99',
+                'description': 'Dozen large brown eggs from free-range chickens',
+                'image_url': 'https://images.unsplash.com/photo-1489726933853-010eb1484d1a'
+            },
+            {
+                'name': 'Avocados',
+                'category': 'Fruits',
+                'price': '1.99',
+                'description': 'Ripe Hass avocados',
+                'image_url': 'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578'
+            },
+            {
+                'name': 'Baby Spinach',
+                'category': 'Vegetables',
+                'price': '3.99',
+                'description': 'Fresh organic baby spinach, 5oz package',
+                'image_url': 'https://images.unsplash.com/photo-1576045057995-568f588f82fb'
+            },
+            {
+                'name': 'Whole Grain Bread',
+                'category': 'Bakery',
+                'price': '3.99',
+                'description': 'Fresh baked whole grain bread',
+                'image_url': 'https://images.unsplash.com/photo-1509440159596-0249088772ff'
+            },
+            {
+                'name': 'Ground Coffee',
+                'category': 'Beverages',
+                'price': '9.99',
+                'description': 'Premium arabica ground coffee, 12oz bag',
+                'image_url': 'https://images.unsplash.com/photo-1497515114629-f71d768fd07c'
+            },
+            {
+                'name': 'Red Bell Peppers',
+                'category': 'Vegetables',
+                'price': '1.29',
+                'description': 'Fresh red bell peppers',
+                'image_url': 'https://images.unsplash.com/photo-1563565375-f3fdfdbefa83'
+            },
+            {
+                'name': 'Greek Yogurt',
+                'category': 'Dairy',
+                'price': '4.99',
+                'description': 'Plain Greek yogurt, 32oz container',
+                'image_url': 'https://images.unsplash.com/photo-1571217668979-f46db8864f75'
+            },
+            {
+                'name': 'Honey',
+                'category': 'Pantry',
+                'price': '7.99',
+                'description': 'Raw organic honey, 16oz jar',
+                'image_url': 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc'
+            },
+            {
+                'name': 'Chicken Breast',
+                'category': 'Meat',
+                'price': '8.99',
+                'description': 'Fresh boneless skinless chicken breast, per pound',
+                'image_url': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791'
+            },
+            {
+                'name': 'Salmon Fillet',
+                'category': 'Seafood',
+                'price': '12.99',
+                'description': 'Fresh Atlantic salmon fillet, per pound',
+                'image_url': 'https://images.unsplash.com/photo-1580476262798-bddd9f4b7369'
+            },
+            {
+                'name': 'Sweet Potatoes',
+                'category': 'Vegetables',
+                'price': '1.49',
+                'description': 'Fresh sweet potatoes, per pound',
+                'image_url': 'https://images.unsplash.com/photo-1596097635121-14b63b7a0c16'
+            },
+            {
+                'name': 'Quinoa',
+                'category': 'Grains',
+                'price': '5.99',
+                'description': 'Organic quinoa, 16oz package',
+                'image_url': 'https://images.unsplash.com/photo-1612358405970-e1afd02b0897'
+            },
+            {
+                'name': 'Almonds',
+                'category': 'Nuts',
+                'price': '8.99',
+                'description': 'Raw almonds, 12oz bag',
+                'image_url': 'https://images.unsplash.com/photo-1508061125266-f9772ebe057f'
+            }
+        ]
 
-class Command(BaseCommand):
-    help = 'Fetch and populate image URLs for grocery items'
-
-    def handle(self, *args, **kwargs):
-        items = GroceryItem.objects.all()
-        for item in items:
-            if not item.image_url:
-                # Fetch a placeholder image URL for the item
-                response = requests.get(f'https://source.unsplash.com/300x300/?{item.name}')
-                if response.status_code == 200:
-                    item.image_url = response.url
-                    item.save()
-                    self.stdout.write(self.style.SUCCESS(f'Updated image for {item.name}'))
-                else:
-                    self.stdout.write(self.style.ERROR(f'Failed to fetch image for {item.name}'))
+        for item in grocery_items:
+            GroceryItem.objects.get_or_create(
+                name=item['name'],
+                defaults={
+                    'category': item['category'],
+                    'price': Decimal(item['price']),
+                    'description': item['description'],
+                    'image_url': item['image_url']
+                }
+            )
+            self.stdout.write(self.style.SUCCESS(f'Successfully added {item["name"]}'))

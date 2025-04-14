@@ -5,117 +5,137 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-avocado">My Basket</h1>
-        {% if not basket.is_group_basket %}
-            <p class="text-gray-600 mt-2">Your personal shopping basket</p>
-        {% else %}
-            <p class="text-gray-600 mt-2">Group basket for {{ basket.group.name }}</p>
-        {% endif %}
+        <div class="flex items-center space-x-3">
+            <span class="text-4xl">🥑</span>
+            <div>
+                <h1 class="text-3xl font-bold text-avocado">My Basket</h1>
+                {% if not basket.is_group_basket %}
+                    <p class="text-gray-600 mt-2">Your personal shopping basket</p>
+                {% else %}
+                    <p class="text-gray-600 mt-2">Group basket for {{ basket.group.name }}</p>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
-    {% if basket.basketitem_set.all %}
-        <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <ul class="divide-y divide-gray-200">
-                {% for item in basket.basketitem_set.all %}
-                    <li class="p-6">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <div class="flex items-center">
-                                    <h3 class="text-lg font-medium text-gray-900">{{ item.item.name }}</h3>
-                                    {% if item.item.description %}
-                                        <span class="ml-2 text-sm text-gray-500">{{ item.item.description }}</span>
-                                    {% endif %}
-                                </div>
-                                <p class="mt-1 text-sm text-gray-500">{{ item.item.category }}</p>
-                            </div>
-                            
-                            <div class="flex items-center space-x-6">
-                                <!-- Quantity Controls -->
-                                <div class="flex items-center space-x-2">
-                                    <form method="POST" action="{% url 'remove_from_basket' item.item.id %}" class="inline">
-                                        {% csrf_token %}
-                                        {% if basket.is_group_basket %}
-                                            <input type="hidden" name="group_id" value="{{ basket.group.id }}">
-                                        {% endif %}
-                                        <button type="submit" 
-                                                class="bg-avocado-light text-white w-8 h-8 rounded-full hover:bg-avocado transition-colors flex items-center justify-center">
-                                            <span class="text-xl">-</span>
-                                        </button>
-                                    </form>
+    {% if basket and basket_items %}
+        <div class="grid gap-6 lg:grid-cols-3">
+            <!-- Items List -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <ul class="divide-y divide-gray-200">
+                        {% for basket_item in basket_items %}
+                            <li class="p-6 hover:bg-cream transition-colors duration-200">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center">
+                                            <div>
+                                                <h3 class="text-lg font-medium text-gray-900">{{ basket_item.item.item.name }}</h3>
+                                                {% if basket_item.item.item.description %}
+                                                    <span class="text-sm text-gray-500">{{ basket_item.item.item.description }}</span>
+                                                {% endif %}
+                                                <p class="mt-1 text-sm text-avocado-light">{{ basket_item.item.item.category }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                     
-                                    <span class="text-lg font-medium w-12 text-center">{{ item.quantity }}</span>
-                                    
-                                    <form method="POST" action="{% url 'add_to_basket' item.item.id %}" class="inline">
-                                        {% csrf_token %}
-                                        {% if basket.is_group_basket %}
-                                            <input type="hidden" name="add_to_group" value="1">
-                                            <input type="hidden" name="group_id" value="{{ basket.group.id }}">
-                                        {% endif %}
-                                        <button type="submit" 
-                                                class="bg-avocado text-white w-8 h-8 rounded-full hover:bg-avocado-dark transition-colors flex items-center justify-center">
-                                            <span class="text-xl">+</span>
-                                        </button>
-                                    </form>
-                                </div>
+                                    <div class="flex items-center space-x-6">
+                                        <!-- Quantity Controls -->
+                                        <div class="flex items-center space-x-2 bg-cream p-2 rounded-lg">
+                                            <form method="POST" action="{% url 'remove_from_basket' basket_item.item.item.id %}" class="inline">
+                                                {% csrf_token %}
+                                                {% if basket.is_group_basket %}
+                                                    <input type="hidden" name="group_id" value="{{ basket.group.id }}">
+                                                {% endif %}
+                                                <button type="submit" 
+                                                        class="bg-avocado-light text-white w-8 h-8 rounded-full hover:bg-avocado transition-colors flex items-center justify-center transform hover:scale-105 duration-200">
+                                                    <span class="text-xl">-</span>
+                                                </button>
+                                            </form>
+                                            
+                                            <span class="text-lg font-medium w-12 text-center text-avocado">{{ basket_item.item.quantity }}</span>
+                                            
+                                            <form method="POST" action="{% url 'add_to_basket' basket_item.item.item.id %}" class="inline">
+                                                {% csrf_token %}
+                                                {% if basket.is_group_basket %}
+                                                    <input type="hidden" name="add_to_group" value="1">
+                                                    <input type="hidden" name="group_id" value="{{ basket.group.id }}">
+                                                {% endif %}
+                                                <button type="submit" 
+                                                        class="bg-avocado text-white w-8 h-8 rounded-full hover:bg-avocado-dark transition-colors flex items-center justify-center transform hover:scale-105 duration-200">
+                                                    <span class="text-xl">+</span>
+                                                </button>
+                                            </form>
+                                        </div>
 
-                                <!-- Price -->
-                                <div class="text-right">
-                                    <p class="text-lg font-bold text-avocado">${{ item.total_price }}</p>
-                                    <p class="text-sm text-gray-500">${{ item.item.price }} each</p>
-                                </div>
+                                        <!-- Price -->
+                                        <div class="text-right">
+                                            <p class="text-lg font-bold text-avocado">${{ basket_item.total_price }}</p>
+                                            <p class="text-sm text-gray-500">${{ basket_item.item.item.price }} each</p>
+                                        </div>
 
-                                <!-- Remove All -->
-                                <form method="POST" action="{% url 'remove_from_basket' item.item.id %}">
-                                    {% csrf_token %}
-                                    {% if basket.is_group_basket %}
-                                        <input type="hidden" name="group_id" value="{{ basket.group.id }}">
-                                    {% endif %}
-                                    <input type="hidden" name="remove_all" value="true">
-                                    <button type="submit" 
-                                            class="text-red-500 hover:text-red-700"
-                                            title="Remove all">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </li>
-                {% endfor %}
-            </ul>
+                                        <!-- Remove All -->
+                                        <form method="POST" action="{% url 'remove_from_basket' basket_item.item.item.id %}">
+                                            {% csrf_token %}
+                                            {% if basket.is_group_basket %}
+                                                <input type="hidden" name="group_id" value="{{ basket.group.id }}">
+                                            {% endif %}
+                                            <input type="hidden" name="remove_all" value="true">
+                                            <button type="submit" 
+                                                    class="text-red-500 hover:text-red-700 transform hover:scale-110 transition-all duration-200"
+                                                    title="Remove all">
+                                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
 
             <!-- Basket Summary -->
-            <div class="bg-cream p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-lg font-medium">Total Items:</span>
-                    <span class="text-lg font-bold text-avocado">{{ basket.total_items }}</span>
-                </div>
-                <div class="flex justify-between items-center mb-6">
-                    <span class="text-xl font-medium">Total Cost:</span>
-                    <span class="text-2xl font-bold text-avocado">${{ basket.total_cost }}</span>
-                </div>
+            <div class="lg:col-span-1">
+                <div class="bg-cream rounded-lg shadow-md p-6 sticky top-4">
+                    <h2 class="text-xl font-bold text-avocado mb-6 flex items-center">
+                        <span class="text-2xl mr-2">🛒</span>
+                        Basket Summary
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center p-3 bg-white rounded-lg">
+                            <span class="text-lg text-gray-600">Total Items:</span>
+                            <span class="text-lg font-bold text-avocado">{{ basket_data.total_items }}</span>
+                        </div>
 
-                <div class="flex space-x-4">
-                    <a href="{% url 'dashboard' %}" 
-                       class="flex-1 bg-white text-avocado border-2 border-avocado py-3 px-6 rounded-lg hover:bg-avocado hover:text-white transition-colors text-center font-medium">
-                        Continue Shopping
-                    </a>
-                    <button class="flex-1 bg-avocado text-white py-3 px-6 rounded-lg hover:bg-avocado-dark transition-colors font-medium">
-                        Proceed to Checkout
-                    </button>
+                        <div class="flex justify-between items-center p-3 bg-white rounded-lg">
+                            <span class="text-lg text-gray-600">Total Cost:</span>
+                            <span class="text-2xl font-bold text-avocado">${{ basket_data.total_with_delivery }}</span>
+                        </div>
+
+                        <div class="pt-6">
+                            <a href="{% url 'dashboard' %}" 
+                               class="block w-full bg-avocado text-white py-3 px-6 rounded-lg hover:bg-avocado-dark transition-colors text-center font-medium mb-3 transform hover:scale-105 duration-200">
+                                Continue Shopping
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     {% else %}
-        <div class="text-center py-16">
-            <div class="mb-4">
-                <span class="text-6xl">🥑</span>
+        <div class="text-center py-16 bg-white rounded-lg shadow-md">
+            <div class="mb-6 transform hover:scale-110 transition-transform duration-300">
+                <span class="text-8xl">🥑</span>
             </div>
-            <h2 class="text-2xl font-medium text-gray-900 mb-4">Your basket is empty</h2>
+            <h2 class="text-2xl font-medium text-avocado mb-4">Your basket is empty</h2>
             <p class="text-gray-600 mb-8">Start adding some delicious items to your basket!</p>
             <a href="{% url 'dashboard' %}" 
-               class="inline-block bg-avocado text-white px-6 py-3 rounded-lg hover:bg-avocado-dark transition-colors">
+               class="inline-block bg-avocado text-white px-8 py-4 rounded-lg hover:bg-avocado-dark transition-all duration-300 transform hover:scale-105 hover:shadow-lg">
+                <span class="mr-2">🛒</span>
                 Browse Items
             </a>
         </div>

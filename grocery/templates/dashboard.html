@@ -36,7 +36,7 @@
         {% for item in items %}
             <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow transform hover:-translate-y-1 duration-200">
                 <div class="relative">
-                    <img src="data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'><rect width='300' height='300' fill='%238BB174'/><text x='50%' y='50%' font-size='24' text-anchor='middle' fill='white' dy='.3em'>{{ item.name|escape }}</text></svg>" alt="{{ item.name }}" class="w-full h-48 object-cover">
+                    <img src="data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'><rect width='300' height='300' fill='%23FFDD57'/><text x='50%' y='50%' font-size='24' text-anchor='middle' fill='%23000000' dy='.3em'>{{ item.name|escape }}</text></svg>" alt="{{ item.name }}" class="w-full h-48 object-cover">
                     <div class="absolute top-2 right-2 bg-avocado-light text-white text-xs font-medium px-2.5 py-0.5 rounded">
                         {{ item.category }}
                     </div>
@@ -51,7 +51,7 @@
                         <button onclick="openBasketModal('{{ item.id }}')" 
                                 class="bg-avocado text-white px-4 py-2 rounded-lg hover:bg-avocado-dark transition-colors flex items-center">
                             <span class="mr-2">🛒</span>
-                            Add to Basket
+                            Add to List
                         </button>
                     </div>
                 </div>
@@ -61,48 +61,39 @@
 
     <!-- Basket Selection Modal -->
     <div id="basketModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white animate-fade-in">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-cream animate-fade-in">
             <div class="mt-3">
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-medium text-gray-900">Add to Basket</h3>
+                    <h3 class="text-lg font-medium text-gray-900">Add to List</h3>
                     <button onclick="closeBasketModal()"
                             class="text-gray-400 hover:text-gray-500">
                         <span class="text-2xl">×</span>
                     </button>
                 </div>
-                <p class="text-gray-600 mb-4">Choose where to add this item and select quantity:</p>
-                
-                <!-- Quantity Selector -->
-                <div class="mb-4">
-                    <label for="quantity" class="block text-sm font-medium text-gray-700">Quantity</label>
-                    <input type="number" id="quantity" name="quantity" min="1" value="1"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-avocado focus:ring-avocado">
-                </div>
-                
-                <!-- Personal Basket Option -->
-                <form method="POST" action="" id="personalBasketForm" class="mb-3">
+                <p class="text-gray-600 mb-4">Choose where to add this item:</p>
+
+                <!-- Personal List Option -->
+                <form method="POST" action="/add-to-list/{{ currentItemId }}/" id="personalListForm" class="mb-3">
                     {% csrf_token %}
-                    <input type="hidden" name="quantity" id="personal-quantity">
                     <button type="submit" 
-                            class="w-full text-left px-4 py-3 rounded-lg bg-cream hover:bg-avocado-light hover:text-white transition-colors flex items-center">
+                            class="w-full text-left px-4 py-3 rounded-lg bg-avocado text-white hover:bg-avocado-dark transition-colors flex items-center">
                         <span class="mr-2">🛒</span>
-                        <span class="font-medium">Personal Basket</span>
+                        <span class="font-medium">Personal List</span>
                     </button>
                 </form>
 
-                <!-- Group Baskets Options -->
+                <!-- Group Lists Options -->
                 {% if user_groups %}
-                    <div class="mb-2 text-sm text-gray-500">Group Baskets:</div>
+                    <div class="mb-2 text-sm text-gray-500">Group Lists:</div>
                     {% for group in user_groups %}
-                        <form method="POST" action="" class="mb-2 groupBasketForm">
+                        <form method="POST" action="/add-to-list/{{ currentItemId }}/" class="mb-2 groupListForm">
                             {% csrf_token %}
                             <input type="hidden" name="add_to_group" value="1">
                             <input type="hidden" name="group_id" value="{{ group.id }}">
-                            <input type="hidden" name="quantity" id="group-quantity">
                             <button type="submit" 
-                                    class="w-full text-left px-4 py-3 rounded-lg bg-cream hover:bg-avocado-light hover:text-white transition-colors flex items-center">
+                                    class="w-full text-left px-4 py-3 rounded-lg bg-avocado-light text-white hover:bg-avocado-dark transition-colors flex items-center">
                                 <span class="mr-2">👥</span>
-                                <span class="font-medium">{{ group.name }}'s Basket</span>
+                                <span class="font-medium">{{ group.name }}'s List</span>
                             </button>
                         </form>
                     {% endfor %}
@@ -140,9 +131,9 @@
     function openBasketModal(itemId) {
         currentItemId = itemId;
         document.getElementById('basketModal').classList.remove('hidden');
-        document.getElementById('personalBasketForm').action = `/add-to-basket/${itemId}/`;
-        document.querySelectorAll('.groupBasketForm').forEach(form => {
-            form.action = `/add-to-basket/${itemId}/`;
+        document.getElementById('personalListForm').action = `/add-to-list/${itemId}/`;
+        document.querySelectorAll('.groupListForm').forEach(form => {
+            form.action = `/add-to-list/${itemId}/`;
         });
     }
 

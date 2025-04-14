@@ -15,8 +15,8 @@
         <form method="POST" action="{% url 'create_group' %}" class="space-y-4">
             {% csrf_token %}
             <div>
-                <label for="group_name" class="block text-sm font-medium text-gray-700">Group Name</label>
-                <input type="text" name="group_name" id="group_name" required
+                <label for="name" class="block text-sm font-medium text-gray-700">Group Name</label>
+                <input type="text" name="name" id="name" required
                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-avocado focus:ring-avocado">
             </div>
             <button type="submit"

@@ -53,11 +53,11 @@
                         </div>
                     {% endif %}
 
-                    {% if user.userprofile.preferred_categories %}
+                    {% if preferred_categories %}
                         <div>
                             <h2 class="text-lg font-medium text-gray-900 mb-2">Preferred Categories</h2>
                             <div class="flex flex-wrap gap-2">
-                                {% for category in user.userprofile.preferred_categories.split ',' %}
+                                {% for category in preferred_categories %}
                                     <span class="px-3 py-1 bg-avocado-light text-white rounded-full text-sm">
                                         {{ category.strip }}
                                     </span>

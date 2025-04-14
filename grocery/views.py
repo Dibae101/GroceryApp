@@ -41,13 +41,16 @@ def dashboard(request):
     paginator = Paginator(items, 12)  # Show 12 items per page
     page_obj = paginator.get_page(page_number)
 
+    user_groups = Group.objects.filter(members=request.user)
+
     return render(request, 'dashboard.html', {
         'items': page_obj.object_list,
         'categories': GroceryItem.objects.values_list('category', flat=True).distinct(),
         'query': query,
         'category_filter': category_filter,
         'is_paginated': paginator.num_pages > 1,
-        'page_obj': page_obj
+        'page_obj': page_obj,
+        'user_groups': user_groups
     })
 
 @login_required
@@ -57,27 +60,31 @@ def basket_view(request):
         is_group_basket=False
     ).first()
     
-    basket_data = None
-    basket_items = []
     if basket:
-        # Calculate total cost and delivery fee
-        subtotal = sum(item.item.price * item.quantity for item in basket.basketitem_set.all())
-        delivery_fee = decimal.Decimal('5.00') if subtotal < 50 else decimal.Decimal('0.00')
-        total_with_delivery = subtotal + delivery_fee
-        basket_data = {
-            'subtotal': subtotal,
-            'delivery_fee': delivery_fee,
-            'total_with_delivery': total_with_delivery,
-        }
-        
-        # Add total price for each item
+        # Get all basket items with their calculated totals
+        basket_items = []
         for item in basket.basketitem_set.all():
             basket_items.append({
                 'item': item,
-                'total_price': item.item.price * item.quantity
+                'total_price': item.total_price
             })
+        
+        # Calculate totals using model properties
+        basket_data = {
+            'subtotal': basket.subtotal,
+            'delivery_fee': basket.delivery_fee,
+            'total_with_delivery': basket.total_with_delivery,
+            'total_items': sum(item['item'].quantity for item in basket_items)
+        }
+    else:
+        basket_items = []
+        basket_data = None
     
-    return render(request, 'basket.html', {'basket': basket, 'basket_data': basket_data, 'basket_items': basket_items})
+    return render(request, 'basket.html', {
+        'basket': basket,
+        'basket_data': basket_data,
+        'basket_items': basket_items
+    })
 
 @login_required
 def add_to_basket(request, item_id):
@@ -129,6 +136,55 @@ def add_to_basket(request, item_id):
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
 
 @login_required
+def add_to_list(request, item_id):
+    item = get_object_or_404(GroceryItem, id=item_id)
+    add_to_group = request.POST.get('add_to_group')
+    group_id = request.POST.get('group_id')
+
+    if add_to_group and group_id:
+        group = get_object_or_404(Group, id=group_id)
+        if not group.members.filter(id=request.user.id).exists():
+            messages.error(request, "You're not a member of this group.")
+            return redirect('dashboard')
+
+        basket = Basket.objects.filter(
+            group=group,
+            is_group_basket=True
+        ).first()
+
+        if not basket:
+            basket = Basket.objects.create(
+                user=request.user,
+                group=group,
+                is_group_basket=True
+            )
+    else:
+        basket = Basket.objects.filter(
+            user=request.user,
+            is_group_basket=False,
+            group__isnull=True
+        ).first()
+
+        if not basket:
+            basket = Basket.objects.create(
+                user=request.user,
+                is_group_basket=False
+            )
+
+    basket_item, created = BasketItem.objects.get_or_create(
+        basket=basket,
+        item=item,
+        defaults={'quantity': 1}
+    )
+
+    if not created:
+        basket_item.quantity += 1
+        basket_item.save()
+
+    messages.success(request, f'Added {item.name} to {"group" if add_to_group else "personal"} list')
+    return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
+
+@login_required
 def remove_from_basket(request, item_id):
     group_id = request.POST.get('group_id')
     remove_all = request.POST.get('remove_all') == 'true'
@@ -167,13 +223,15 @@ def group_list(request):
     })
 
 @login_required
-def group_create(request):
+def create_group(request):
     if request.method == 'POST':
-        name = request.POST.get('name')
-        if name:
-            group = Group.objects.create(name=name, created_by=request.user)
+        group_name = request.POST.get('name')
+        if group_name:
+            group = Group.objects.create(name=group_name, created_by=request.user)
             GroupMembership.objects.create(group=group, user=request.user, is_admin=True)
-            messages.success(request, f'Group "{name}" created successfully!')
+            messages.success(request, f'Group "{group_name}" created successfully!')
+        else:
+            messages.error(request, 'Please provide a group name')
     return redirect('group_list')
 
 @login_required
@@ -402,9 +460,12 @@ def user_profile(request, username):
         profile_user.userprofile.save()
         messages.success(request, 'Profile updated successfully!')
 
+    preferred_categories = profile_user.userprofile.preferred_categories.split(',') if profile_user.userprofile.preferred_categories else []
+
     return render(request, 'profile.html', {
         'user': profile_user,
         'is_owner': is_owner,
+        'preferred_categories': preferred_categories,
     })
 
 def grocery_list(request):
@@ -435,8 +496,20 @@ def grocery_create(request):
         name = request.POST.get('name')
         category = request.POST.get('category')
         price = request.POST.get('price')
+        description = request.POST.get('description')
+        image_url = request.POST.get('image_url')
+        
         if name and category and price:
-            GroceryItem.objects.create(name=name, category=category, price=price)
+            GroceryItem.objects.create(
+                name=name,
+                category=category,
+                price=price,
+                description=description,
+                image_url=image_url
+            )
+            messages.success(request, f'Added {name} to grocery items')
+        else:
+            messages.error(request, 'Please fill in all required fields')
     return redirect('grocery_list')
 
 def grocery_delete(request, item_id):
